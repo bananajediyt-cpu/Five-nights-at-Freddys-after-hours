@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>After Hours — Fan Horror Game</title>
+<style>
+:root{--green:#9dfc82;--red:#e23d3d;--panel:#101215;--line:#4b5056}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#050607;color:#e8e8e8;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+button{font:inherit;color:#eee;background:#191c20;border:1px solid #555;padding:10px 13px;cursor:pointer;transition:background .12s,border-color .12s}
+button:hover{background:#2b3035;border-color:#aaa}button:active{transform:translateY(1px)}button:disabled{opacity:.4;cursor:not-allowed}
+#game{position:relative;width:100vw;height:100dvh;min-height:500px;background:#070809;overflow:hidden}
+.screen{position:absolute;inset:0;display:none}.screen.active{display:block}
+#menu{background:radial-gradient(ellipse at 70% 45%,#27282a 0,#0c0d0f 35%,#020303 78%)}
+.menuTitle{position:absolute;left:5%;top:12%;font-size:clamp(30px,5vw,70px);font-weight:900;line-height:.9;letter-spacing:.04em;text-shadow:3px 3px #333;max-width:55%}
+.menuTitle small{display:block;font-size:clamp(12px,1.4vw,20px);letter-spacing:.35em;margin-top:18px;color:#aaa}
+.menuButtons{position:absolute;left:6%;top:45%;display:grid;gap:9px;width:min(250px,42vw)}
+.menuButtons button{text-align:left;background:#070808b8;border:1px solid transparent;font-size:clamp(13px,1.6vw,18px);font-weight:bold;letter-spacing:.06em}
+.menuButtons button:hover{border-color:#aaa;padding-left:19px}
+.menuNote{position:absolute;bottom:4%;left:5%;font-size:11px;color:#777;max-width:70%}
+#menuMonster{position:absolute;right:9%;bottom:4%;height:75%;width:32%;opacity:.8;filter:drop-shadow(0 0 18px #000)}
+#office{background:linear-gradient(#111416 0%,#24282b 44%,#0c0e10 45%,#050607 100%)}
+.officeWall{position:absolute;inset:0 0 23%;background:linear-gradient(90deg,#111416,#24282b 20%,#171a1c 50%,#26292b 80%,#111416);border-bottom:5px solid #050607}
+.wallPanel{position:absolute;top:5%;left:25%;width:50%;height:50%;border:9px solid #0c0e10;background:repeating-linear-gradient(0deg,#171a1b 0 3px,#1b1e20 3px 6px);box-shadow:inset 0 0 35px #000}
+.poster{position:absolute;top:11%;width:12%;height:20%;background:#333638;border:5px solid #101112;box-shadow:0 0 10px #000;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;font-size:clamp(8px,1vw,14px);color:#b6b7b8;transform:rotate(-2deg)}
+.poster.left{left:7%}.poster.right{right:7%;transform:rotate(2deg)}
+.poster:after{content:"";position:absolute;inset:12%;border:1px dashed #777}
+.doorBay{position:absolute;top:10%;height:66%;width:18%;background:#030405;box-shadow:inset 0 0 24px #000;border:8px solid #151719;overflow:hidden}
+.doorBay.left{left:0}.doorBay.right{right:0}
+.hall{position:absolute;inset:0;background:linear-gradient(90deg,#08090a,#292d30 50%,#070809);opacity:.85}
+.hall:before{content:"";position:absolute;top:0;left:15%;width:70%;height:100%;background:repeating-linear-gradient(0deg,transparent 0 35px,#414447 36px 39px);opacity:.3}
+.doorSlab{position:absolute;inset:0;background:repeating-linear-gradient(0deg,#4c5053 0 11px,#25292c 12px 18px);border:5px solid #72777a;transform:translateY(-110%);transition:transform .22s ease;box-shadow:0 0 15px #000}
+.doorSlab.closed{transform:translateY(0)}
+.hallLight{position:absolute;inset:0;background:radial-gradient(ellipse,#d6d4a0aa 0%,#b1ad7244 42%,transparent 75%);opacity:0;transition:opacity .1s;pointer-events:none}
+.hallLight.on{opacity:1}
+.threat{position:absolute;bottom:5%;left:18%;width:64%;height:62%;display:none;filter:drop-shadow(0 0 8px #000)}
+.threat.show{display:block}
+.officeDesk{position:absolute;bottom:-4%;left:16%;width:68%;height:30%;background:linear-gradient(#242729,#101214 45%,#050606);clip-path:polygon(8% 0,92% 0,100% 100%,0 100%);border-top:7px solid #393d3f}
+.fan{position:absolute;bottom:17%;left:44%;width:12%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#aaa 0 8%,#222 10% 20%,transparent 22%);animation:spin 1.5s linear infinite;z-index:2}
+.fan:before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(transparent 0 8%,#74797b 10% 17%,transparent 20% 38%,#74797b 40% 47%,transparent 50% 68%,#74797b 70% 77%,transparent 80% 100%)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.controls{position:absolute;top:28%;width:9%;display:grid;gap:5px;z-index:5}.controls.left{left:18%}.controls.right{right:18%}
+.controls button{padding:clamp(5px,.7vw,10px) 3px;font-size:clamp(9px,1vw,13px);font-weight:bold;background:#15191c;border-color:#454a4e}
+.controls button.active{background:#6d2929;border-color:#ff7b7b;box-shadow:0 0 12px #d22}
+#hud{position:absolute;left:2%;bottom:2%;z-index:10;font-family:monospace;text-shadow:0 1px #000;font-size:clamp(12px,1.5vw,17px);line-height:1.55}
+#hud .power{color:var(--green)}#usage{display:flex;gap:3px;margin-top:3px}#usage i{display:block;width:12px;height:9px;background:#25292b;border:1px solid #4b5052}#usage i.on{background:#b7d984}
+#clock{position:absolute;right:2%;top:2%;text-align:right;font-size:clamp(19px,2.5vw,30px);font-weight:bold;text-shadow:0 2px #000}
+#monitorToggle{position:absolute;bottom:0;left:38%;width:24%;height:9%;z-index:12;border-bottom:0;background:linear-gradient(#393d40,#111);font-size:12px;letter-spacing:.15em}
+#monitor{background:#090b0c;z-index:20;border:8px solid #555b5e;box-shadow:0 0 0 100vmax #0009;display:none}
+#monitor.active{display:block}
+.camFeed{position:absolute;inset:0;background:linear-gradient(#16191b,#08090a);overflow:hidden}
+.camRoom{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 44px,#ffffff08 45px 47px),linear-gradient(90deg,#17191a,#292c2d 50%,#111314)}
+.camRoom:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#fff0 0 3px,#fff1 4px);opacity:.5;pointer-events:none}
+.camLabel{position:absolute;top:3%;left:3%;z-index:2;font-family:monospace;background:#000b;padding:8px 12px;font-size:clamp(13px,2vw,22px)}
+.static{position:absolute;inset:0;pointer-events:none;opacity:.12;background:repeating-radial-gradient(circle at 50% 50%,#fff 0 1px,#000 1px 3px);mix-blend-mode:screen;animation:noise .18s steps(2) infinite}
+@keyframes noise{0%{transform:translate(0,0)}50%{transform:translate(2%,-1%)}100%{transform:translate(-1%,2%)}}
+.camMap{position:absolute;right:2%;bottom:3%;width:min(33%,340px);height:45%;background:#0a0b0cd9;border:2px solid #74797b;padding:7px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:4px;z-index:3}
+.camMap button{padding:2px;font-size:clamp(8px,1vw,12px);background:#252a2c;border:1px solid #616669}
+.camMap button.selected{background:#e7e7e7;color:#111;border-color:#fff}
+.camMap button .dot{color:#ff6262}
+.camExit{position:absolute;left:2%;bottom:3%;z-index:4}
+.camAnim{position:absolute;width:23%;height:47%;left:38%;bottom:10%;filter:drop-shadow(0 0 15px #000);display:none}
+.camAnim.show{display:block}
+#vent{background:radial-gradient(ellipse,#282d30,#08090a 65%);z-index:25}
+.ventPipe{position:absolute;inset:5%;border:14px solid #484e51;box-shadow:inset 0 0 30px #000,0 0 20px #000;background:repeating-linear-gradient(0deg,#0d0f10 0 60px,#252a2c 62px 66px)}
+.ventTitle{position:absolute;top:8%;left:8%;font-family:monospace;font-size:clamp(18px,3vw,32px)}
+.keypad{position:absolute;left:50%;top:50%;transform:translate(-50%,-40%);width:min(320px,85vw);background:#111619;border:3px solid #697174;padding:18px;box-shadow:0 0 40px #000}
+#codeDisplay{background:#020403;border:1px solid #55605c;color:#8cff9b;padding:13px;text-align:center;font:24px monospace;letter-spacing:.4em;margin-bottom:12px;min-height:52px}
+.keyGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.keyGrid button{font-size:20px;padding:12px}
+#secretPanel{position:absolute;left:2%;top:22%;width:min(245px,40%);display:none;z-index:7;background:#101416ed;border:1px solid #777;padding:10px;box-shadow:0 0 20px #000}
+#secretPanel.show{display:grid;gap:7px}#secretPanel h3{margin:0 0 4px;font-size:14px;color:#e3d5a0}
+#cooldown{font:12px monospace;color:#aeb4b5;text-align:center}
+.overlay{position:absolute;inset:0;z-index:50;background:#000e;display:none;align-items:center;justify-content:center;text-align:center;padding:20px}
+.overlay.active{display:flex}.overlayBox{max-width:560px}.overlay h1{font-size:clamp(32px,7vw,72px);margin:0 0 12px;letter-spacing:.08em}.overlay p{color:#b7b7b7}.overlay button{margin:6px}
+#jumpscare{background:#030303;z-index:60;display:none;align-items:center;justify-content:center}.jumpscareFlash{position:absolute;inset:0;background:#eee;opacity:0;animation:flash .3s ease-out}@keyframes flash{0%{opacity:1}100%{opacity:0}}
+#scareArt{width:min(78vw,620px);height:min(86vh,620px);filter:drop-shadow(0 0 35px #f00) drop-shadow(0 0 70px #7b0000);animation:lunge .75s cubic-bezier(.1,.8,.2,1) forwards}
+#jumpscare:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#fff0 0 3px,#fff2 4px),radial-gradient(ellipse at center,transparent 15%,#000 85%);pointer-events:none;z-index:2}
+#scareText{z-index:3;text-shadow:0 0 18px #f00,2px 2px #000}
+@keyframes lunge{0%{transform:scale(.1) rotate(-10deg);opacity:.2}45%{transform:scale(1.3) rotate(4deg);opacity:1}100%{transform:scale(1.7);opacity:1}}
+#scareText{position:absolute;bottom:4%;font-weight:900;letter-spacing:.4em;color:#f33}
+#settings{z-index:70;background:#070809;display:none;padding:6vw;overflow:auto}
+#settings.active{display:block}#settings h2{font-size:36px}#settings label{display:block;margin:20px 0}
+.small{font-size:12px;color:#888}
+@media(max-width:650px){.controls.left{left:19%;width:12%}.controls.right{right:19%;width:12%}.doorBay{width:20%}.camMap{width:43%;height:40%}.officeDesk{left:10%;width:80%}.poster{display:none}.menuTitle{max-width:70%}.menuButtons{top:43%}#secretPanel{width:44%;top:24%}}
+
+/* GRAPHICS PASS: grittier low-light security-camera horror */
+#game:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:80;opacity:.16;background:repeating-linear-gradient(0deg,transparent 0 3px,#d8e0e4 4px,transparent 5px),radial-gradient(ellipse at center,transparent 38%,#000 100%);mix-blend-mode:soft-light}
+#menu{background:linear-gradient(110deg,#020303 0%,#090b0d 45%,#17191a 72%,#030404 100%)}
+#menu:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9%,#ffffff03 9.1% 9.3%),linear-gradient(0deg,#000b,transparent 45%,#0008);pointer-events:none}
+.menuTitle{text-shadow:0 2px 0 #000,3px 4px 0 #292929,0 0 22px #b5b5b522;filter:contrast(1.08)}
+.menuTitle small{color:#aaa; text-shadow:0 0 8px #fff2}
+#menuMonster{opacity:.94;filter:drop-shadow(0 0 9px #000) drop-shadow(0 0 28px #8c6c4626);transform:scale(1.04);transform-origin:bottom center}
+.officeWall{background:linear-gradient(90deg,#080a0b 0%,#1c2022 12%,#292c2d 28%,#171a1c 50%,#292c2d 72%,#171a1c 88%,#070809 100%);box-shadow:inset 0 -35px 50px #000, inset 0 0 80px #000}
+.officeWall:before{content:"";position:absolute;left:0;right:0;top:0;height:17%;background:repeating-linear-gradient(90deg,#050607 0 2px,transparent 2px 12.5%),linear-gradient(#090a0b,#1b1e20);border-bottom:5px solid #070809;box-shadow:0 5px 16px #000}
+.officeWall:after{content:"";position:absolute;left:0;right:0;bottom:0;height:15%;background:repeating-linear-gradient(90deg,#050607 0 3px,transparent 3px 12%),linear-gradient(#111416,#050607);opacity:.8}
+.wallPanel{top:18%;height:38%;border-width:10px;border-color:#090a0b;background:linear-gradient(90deg,#151819,#202324 50%,#111314);box-shadow:inset 0 0 35px #000,0 0 0 2px #363a3c,0 12px 25px #0008}
+.wallPanel:before{content:"";position:absolute;inset:8%;background:repeating-linear-gradient(0deg,transparent 0 36px,#080909 37px 40px),repeating-linear-gradient(90deg,transparent 0 75px,#080909 76px 80px);opacity:.7}
+.poster{background:linear-gradient(135deg,#45413a,#1c1d1c 60%,#111);border-color:#090a0a;box-shadow:inset 0 0 18px #000,0 8px 12px #0009;color:#d0c8b7;letter-spacing:.08em;text-shadow:0 1px #000}
+.poster:before{content:"★";position:absolute;top:8%;font-size:clamp(13px,2vw,25px);color:#b9a77e;text-shadow:0 0 8px #a88c4d55}
+.doorBay{background:#010202;border-color:#0b0d0e;box-shadow:inset 0 0 32px #000,0 0 0 2px #33383a,0 0 25px #000}
+.hall{background:linear-gradient(90deg,#030405 0%,#15191b 35%,#34383a 50%,#171a1c 68%,#020303 100%);filter:contrast(1.2)}
+.hall:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 30%,#a4a9ab10 48%,transparent 65%),repeating-linear-gradient(90deg,transparent 0 22%,#0007 23% 24%);opacity:.9}
+.doorSlab{background:repeating-linear-gradient(0deg,#353a3d 0 2px,#555b5e 3px 7px,#262a2c 8px 14px);border:5px solid #7b8082;box-shadow:inset 0 0 18px #000,0 0 22px #000; }
+.doorSlab:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 18%,#0005 19% 20%),linear-gradient(90deg,#0007,transparent 25% 75%,#0007)}
+.hallLight{background:radial-gradient(ellipse at 50% 42%,#fff2c9ee 0%,#e5d9a080 27%,#a59c6544 58%,transparent 80%);mix-blend-mode:screen}
+.threat{filter:drop-shadow(0 0 6px #000) drop-shadow(0 0 13px #e3d8b01b)}
+.officeDesk{background:linear-gradient(#45494a 0%,#292d2f 6%,#171a1b 24%,#090b0c 70%,#020303 100%);border-top:6px solid #626668;box-shadow:inset 0 12px 20px #000,0 -6px 24px #000}
+.officeDesk:before{content:"";position:absolute;top:7%;left:9%;right:9%;height:5px;background:#070809;box-shadow:0 8px 0 #25292a,0 10px 0 #080909}
+.officeDesk:after{content:"";position:absolute;left:12%;right:12%;top:18%;height:44%;background:repeating-linear-gradient(90deg,transparent 0 17%,#ffffff07 17.3% 17.8%);border-top:1px solid #ffffff10}
+.fan{background:radial-gradient(circle,#c2c5c3 0 5%,#45494a 7% 15%,#0c0e0f 17% 23%,transparent 25%);filter:drop-shadow(0 2px 3px #000)}
+.fan:after{content:"";position:absolute;inset:15%;border:2px solid #5a5f60;border-radius:50%;box-shadow:0 0 0 4px #16191a}
+.controls button{background:linear-gradient(#252a2c,#090b0c);border-color:#6a7072;box-shadow:inset 0 1px #ffffff12,0 3px 8px #000}
+.controls button.active{background:linear-gradient(#9b2929,#3d0909);border-color:#ff9b8d;box-shadow:0 0 16px #d22, inset 0 0 8px #ffb0a033}
+#hud{background:linear-gradient(90deg,#0009,transparent);padding:7px 12px;border-left:2px solid #737a7c}
+#clock{background:#0008;padding:8px 12px;border-right:2px solid #7b8182}
+#monitor{border:10px solid #393e40;box-shadow:inset 0 0 0 2px #090a0a,0 0 0 100vmax #000b}
+.camFeed{background:#050606}
+.camRoom{filter:contrast(1.15) saturate(.62);background-image:linear-gradient(180deg,#101213,#25282a 48%,#080909);box-shadow:inset 0 0 100px #000}
+.camRoom:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0009,transparent 18% 82%,#0009),linear-gradient(0deg,#000b,transparent 35%,#0008);pointer-events:none}
+.camRoom:after{background:repeating-linear-gradient(0deg,transparent 0 2px,#fff2 3px,transparent 4px);opacity:.38}
+.camLabel{border-left:3px solid #d2d6d5;color:#e0e3e2;box-shadow:0 2px 8px #000;font-weight:bold;letter-spacing:.08em}
+.static{opacity:.17;background:repeating-radial-gradient(circle at 50% 50%,#fff 0 1px,#000 1px 3px),repeating-linear-gradient(90deg,transparent 0 20px,#fff1 21px 22px)}
+.camMap{background:#050708ed;border-color:#737a7c;box-shadow:0 0 20px #000,inset 0 0 18px #000}
+.camMap button{background:linear-gradient(#34393b,#151819);border-color:#53595b;color:#c4c8c8}
+.camMap button.selected{background:#d8dedc;color:#101212;box-shadow:0 0 12px #fff7}
+#vent{background:radial-gradient(ellipse at 50% 30%,#31383a 0%,#15191b 35%,#030404 78%)}
+.ventPipe{border-color:#62696c;box-shadow:inset 0 0 45px #000,0 0 0 4px #101314,0 0 30px #000;background:repeating-linear-gradient(0deg,#080a0b 0 58px,#3c4244 59px 64px,#101314 65px 70px)}
+.keypad{background:linear-gradient(145deg,#202628,#090b0c);border-color:#828a8c;box-shadow:0 0 0 5px #090b0c,0 0 55px #000}
+.overlay{background:radial-gradient(ellipse at center,#111617e8,#000f 75%);backdrop-filter:blur(2px)}
+.overlayBox{border:1px solid #4c5355;background:linear-gradient(145deg,#111516eF,#050606f5);padding:clamp(20px,4vw,42px);box-shadow:0 0 0 5px #0008,0 0 45px #000}
+.overlay h1{text-shadow:0 3px #000,0 0 22px #aaa3}
+button{box-shadow:inset 0 1px #ffffff0b}
+@media(max-width:650px){.wallPanel{left:25%;width:50%}#game:after{opacity:.1}}
+
+
+#customNight{background:radial-gradient(ellipse at center,#202426,#050606 72%);padding:clamp(16px,4vw,48px);overflow:auto}
+.customWrap{max-width:920px;margin:0 auto}
+.customWrap h1{font-size:clamp(28px,5vw,52px);letter-spacing:.08em;margin:0 0 8px;text-shadow:0 3px #000}
+.customIntro{color:#aeb4b5;margin:0 0 20px}
+.customGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.customEnemy{background:#0b0d0e;border:1px solid #42484a;padding:12px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.customEnemy strong{letter-spacing:.08em}
+.customEnemy label{grid-column:1/-1;display:flex;align-items:center;gap:10px;font:12px monospace;color:#bfc4c5}
+.customEnemy input{width:100%;accent-color:#d7d9d5}
+.customActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.customActions button{min-width:150px}
+#customLock{color:#e8b9a0}
+#customNight .small{color:#858c8e}
+@media(max-width:600px){.customGrid{grid-template-columns:1fr}.customEnemy{padding:10px}}
+.witnessArt{position:absolute;width:min(26%,240px);height:62%;left:38%;bottom:8%;filter:drop-shadow(0 0 18px #b7c8cf66);animation:witnessPulse 2.2s ease-in-out infinite alternate}
+@keyframes witnessPulse{from{opacity:.62;transform:translateY(2px)}to{opacity:1;transform:translateY(-3px)}}
+.witnessLabel{position:absolute;left:3%;bottom:13%;color:#b9c7cb;background:#000b;border-left:3px solid #b9c7cb;padding:8px 12px;font:14px monospace;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<div id="game">
+  <section id="menu" class="screen active">
+    <div class="menuTitle">FIVE NIGHTS<br>AFTER HOURS<small>A FAN-MADE SURVIVAL HORROR</small></div>
+    <div class="menuButtons">
+      <button id="newGame">▶ NEW GAME</button>
+      <button id="continueGame">CONTINUE NIGHT <span id="continueNum">1</span></button>
+      <button id="nightSelect">NIGHT SELECT</button>
+      <button id="customNightBtn" disabled title="Beat Night 6 to unlock">CUSTOM NIGHT 🔒</button>
+      <button id="settingsBtn">SETTINGS</button>
+    </div>
+    <svg id="menuMonster" viewBox="0 0 240 480" aria-label="Shadowy fan-made animatronic">
+      <defs><linearGradient id="fur" x1="0" x2="1"><stop stop-color="#24201c"/><stop offset=".5" stop-color="#65513e"/><stop offset="1" stop-color="#171615"/></linearGradient></defs>
+      <ellipse cx="120" cy="450" rx="95" ry="20" fill="#000"/>
+      <path d="M60 160 Q35 120 48 55 Q85 75 90 130 L150 130 Q165 70 199 55 Q211 120 180 165 L190 300 L173 410 L143 410 L132 315 L107 315 L92 410 L62 410 L57 300Z" fill="url(#fur)" stroke="#090909" stroke-width="8"/>
+      <path d="M58 102 Q55 20 92 28 L105 126Z M145 125 L162 25 Q202 22 193 104 L176 144Z" fill="#4a3d32" stroke="#090909" stroke-width="7"/>
+      <ellipse cx="120" cy="165" rx="70" ry="72" fill="url(#fur)" stroke="#090909" stroke-width="9"/>
+      <ellipse cx="91" cy="158" rx="16" ry="20" fill="#d9f2bf"/><ellipse cx="149" cy="158" rx="16" ry="20" fill="#d9f2bf"/>
+      <circle cx="94" cy="159" r="7" fill="#111"/><circle cx="146" cy="159" r="7" fill="#111"/>
+      <path d="M95 200 Q120 218 145 198 L155 226 Q120 252 85 226Z" fill="#090909" stroke="#211b17" stroke-width="5"/>
+      <path d="M100 208 L108 224 L116 208 L124 224 L132 208 L140 220" fill="none" stroke="#c8c3b8" stroke-width="5"/>
+      <rect x="95" y="77" width="50" height="12" rx="3" fill="#171313"/><rect x="105" y="45" width="30" height="38" fill="#24201c" stroke="#080808" stroke-width="5"/>
+      <path d="M60 264 L28 320 L46 337 L80 292 M180 264 L211 320 L193 337 L160 292" fill="none" stroke="#30271f" stroke-width="25" stroke-linecap="round"/>
+    </svg>
+    <div class="menuNote">UNOFFICIAL FAN-MADE GAME • Original fan characters and code • Headphones recommended</div>
+  </section>
+
+  <section id="office" class="screen">
+    <div class="officeWall"><div class="wallPanel"></div><div class="poster left">CELEBRATE<br>SAFELY</div><div class="poster right">SMILE!<br>YOU'RE ON CAMERA</div></div>
+    <div class="doorBay left"><div class="hall" id="leftHall"></div><div class="threat" id="leftThreat"></div><div class="hallLight" id="leftLight"></div><div class="doorSlab" id="leftDoor"></div></div>
+    <div class="doorBay right"><div class="hall" id="rightHall"></div><div class="threat" id="rightThreat"></div><div class="hallLight" id="rightLight"></div><div class="doorSlab" id="rightDoor"></div></div>
+    <div class="controls left"><button id="leftLightBtn">LIGHT</button><button id="leftDoorBtn">DOOR</button></div>
+    <div class="controls right"><button id="rightLightBtn">LIGHT</button><button id="rightDoorBtn">DOOR</button></div>
+    <div class="fan"></div><div class="officeDesk"></div>
+    <div id="clock"><div id="hour">12 AM</div><div class="small" id="nightLabel">NIGHT 1</div></div>
+    <div id="hud">POWER: <span class="power" id="powerText">100%</span><div>USAGE</div><div id="usage"><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div id="secretPanel"><h3>SECRET POWERS</h3><button id="summonBtn">SUMMON THE NIGHTMARE</button><button id="skipBtn">SKIP NIGHT</button><button id="rechargeBtn">RECHARGE +20%</button><div id="cooldown">Recharge ready</div></div>
+    <button id="monitorToggle">▼ RAISE MONITOR ▼</button>
+    <div class="small" style="position:absolute;right:2%;bottom:2%;z-index:3">Click the vent near the right door when you find it.</div>
+  </section>
+
+  <section id="monitor" class="screen">
+    <div class="camFeed"><div class="camRoom" id="camRoom"></div><div class="camLabel" id="camLabel">CAM 1A — MAIN STAGE</div><div class="camAnim" id="camAnim"></div><div class="static"></div></div>
+    <div class="camMap" id="camMap"></div>
+    <button class="camExit" id="lowerMonitor">▼ LOWER MONITOR</button>
+  </section>
+
+  <section id="vent" class="screen">
+    <div class="ventPipe"></div><div class="ventTitle">MAINTENANCE VENT // ACCESS PANEL</div>
+    <div class="keypad"><div style="text-align:center;margin-bottom:10px;letter-spacing:.15em">ENTER ACCESS CODE</div><div id="codeDisplay">----</div><div class="keyGrid" id="keyGrid"></div><p class="small" id="codeMessage" style="text-align:center">A faint scratching echoes behind the metal.</p><button id="ventReturn" style="width:100%;margin-top:10px">RETURN TO OFFICE</button></div>
+  </section>
+
+  <section id="customNight" class="screen">
+    <div class="customWrap">
+      <h1>CUSTOM NIGHT</h1>
+      <p class="customIntro">Set each animatronic's difficulty from 0 (off) to 20 (extreme). Beat all six main nights to unlock this mode.</p>
+      <p id="customLock" class="small">CUSTOM NIGHT LOCKED — SURVIVE NIGHT 6 FIRST.</p>
+      <div class="customGrid">
+        <div class="customEnemy"><strong>RUSTY</strong><output id="rustyVal">10</output><label>AI LEVEL <input id="rustyLevel" type="range" min="0" max="20" value="10"></label></div>
+        <div class="customEnemy"><strong>VEX</strong><output id="vexVal">10</output><label>AI LEVEL <input id="vexLevel" type="range" min="0" max="20" value="10"></label></div>
+        <div class="customEnemy"><strong>PEACHES</strong><output id="peachesVal">10</output><label>AI LEVEL <input id="peachesLevel" type="range" min="0" max="20" value="10"></label></div>
+        <div class="customEnemy"><strong>GRIN</strong><output id="grinVal">10</output><label>AI LEVEL <input id="grinLevel" type="range" min="0" max="20" value="10"></label></div>
+      </div>
+      <div class="customActions"><button id="startCustomBtn" disabled>START CUSTOM NIGHT</button><button id="customBackBtn">BACK TO MENU</button></div>
+      <p class="small">Custom Night uses your chosen AI levels. A level of 0 disables that character for the round.</p>
+    </div>
+  </section>
+
+  <section id="settings" class="screen">
+    <h2>SETTINGS</h2><label>MASTER VOLUME <input id="volume" type="range" min="0" max="100" value="45"></label>
+    <label>BRIGHTNESS <input id="brightness" type="range" min="65" max="130" value="100"></label>
+    <p class="small">Audio is generated by the browser. Some browsers require a click before sound can play.</p>
+    <button id="settingsBack">BACK</button>
+  </section>
+
+  <div class="overlay" id="nightOverlay"><div class="overlayBox"><h1 id="overlayTitle">NIGHT 1</h1><p id="overlayMessage">12:00 AM</p><button id="overlayStart">START NIGHT</button><button id="overlayMenu">MAIN MENU</button></div></div>
+  <div class="overlay" id="endOverlay"><div class="overlayBox"><h1 id="endTitle">6 AM</h1><p id="endMessage">You survived the night.</p><button id="nextNight">CONTINUE</button><button id="endMenu">MAIN MENU</button></div></div>
+  <div id="jumpscare" class="screen"><div class="jumpscareFlash"></div><svg id="scareArt" viewBox="0 0 240 300">
+    <path d="M35 90 Q10 20 50 10 L82 72 L158 72 L190 10 Q228 18 205 92 L220 230 L170 290 L70 290 L20 230Z" fill="#554437" stroke="#0a0807" stroke-width="10"/>
+    <ellipse cx="85" cy="110" rx="22" ry="28" fill="#e9f4ce"/><ellipse cx="155" cy="110" rx="22" ry="28" fill="#e9f4ce"/><circle cx="86" cy="111" r="10"/><circle cx="154" cy="111" r="10"/>
+    <path d="M58 170 Q120 145 182 170 L190 220 Q120 270 50 220Z" fill="#050505" stroke="#201814" stroke-width="7"/>
+    <path d="M66 176 L82 211 L98 176 L114 214 L132 176 L148 214 L164 176 L178 206" fill="none" stroke="#eee0c8" stroke-width="9"/>
+  </svg><div id="scareText">GOT YOU</div></div>
+</div>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const screens = ['menu','office','monitor','vent','settings','customNight'];
+const cams = [
+ ['1A','MAIN STAGE'],['1B','DINING AREA'],['1C','CURTAIN ROOM'],['2A','WEST HALL'],['2B','WEST CORNER'],['3','SUPPLY CLOSET'],['4A','EAST HALL'],['4B','EAST CORNER'],['5','BACKSTAGE'],['6','KITCHEN'],['7','RESTROOMS'],['8','VENT HUB']
+];
+const anims = [
+ {name:'RUSTY',color:'#806448',route:[0,1,4,3,4],side:'left',aggr:1},
+ {name:'VEX',color:'#63777c',route:[0,1,2,3,4],side:'left',aggr:1.25},
+ {name:'PEACHES',color:'#b5a45b',route:[0,1,6,7,6],side:'right',aggr:1.15},
+ {name:'GRIN',color:'#874c3d',route:[8,5,11,7],side:'right',aggr:1.05}
+];
+let state = {night:1, unlocked:1, customUnlocked:false, customMode:false, customLevels:[10,10,10,10], witnessUntil:0, witnessSeen:false, power:100, elapsed:0, running:false, paused:false, leftDoor:false,rightDoor:false,leftLight:false,rightLight:false,monitor:false,cam:0,ventCode:'',secret:false,rechargeAt:0,nightDuration:180,anim:[], last:performance.now(), scareLock:false};
+let raf, soundCtx, masterGain, audioVolume=.45;
+function showScreen(name){screens.forEach(s=>$(s).classList.toggle('active',s===name));}
+function setOffice(){showScreen('office');$('monitor').classList.remove('active');$('vent').classList.remove('active');state.monitor=false;$('monitorToggle').textContent='▼ RAISE MONITOR ▼';}
+function sound(freq=180,dur=.12,type='square',vol=.06){try{if(!soundCtx){soundCtx=new(window.AudioContext||window.webkitAudioContext)();masterGain=soundCtx.createGain();masterGain.gain.value=audioVolume;masterGain.connect(soundCtx.destination)}let o=soundCtx.createOscillator(),g=soundCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,soundCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,soundCtx.currentTime+dur);o.connect(g);g.connect(masterGain);o.start();o.stop(soundCtx.currentTime+dur)}catch(e){}}
+function setVolume(){audioVolume=+$('volume').value/100;if(masterGain)masterGain.gain.value=audioVolume;}
+function drawAnimSvg(color, fox=false){return `<svg viewBox="0 0 100 150" width="100%" height="100%" role="img" aria-label="A damaged animatronic in the shadows">
+<defs><linearGradient id="metalFur" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${color}"/><stop offset=".48" stop-color="#252727"/><stop offset=".72" stop-color="${color}"/><stop offset="1" stop-color="#101112"/></linearGradient><radialGradient id="eyeGlow"><stop stop-color="#fff9d6"/><stop offset=".45" stop-color="#d9edab"/><stop offset="1" stop-color="#9ebf79"/></radialGradient></defs>
+<path d="${fox?'M18 42 L4 4 L35 23 L65 23 L96 4 L82 48':'M19 42 L15 3 L38 24 L62 24 L85 3 L81 43'}" fill="url(#metalFur)" stroke="#070808" stroke-width="5" stroke-linejoin="round"/>
+<path d="M18 45 Q50 24 82 45 L89 103 L72 139 L28 139 L11 103Z" fill="url(#metalFur)" stroke="#070808" stroke-width="6"/>
+<path d="M24 47 L32 40 L42 45 M58 45 L69 39 L77 48" stroke="#a9aaa0" stroke-opacity=".4" stroke-width="2" fill="none"/>
+<path d="M22 56 Q35 45 46 56 L44 73 L26 74Z M54 56 Q66 45 78 56 L74 74 L56 73Z" fill="#090b0b" stroke="#111" stroke-width="2"/>
+<ellipse cx="35" cy="63" rx="8" ry="10" fill="url(#eyeGlow)"/><ellipse cx="65" cy="63" rx="8" ry="10" fill="url(#eyeGlow)"/>
+<circle cx="36" cy="64" r="4" fill="#080909"/><circle cx="64" cy="64" r="4" fill="#080909"/>
+<path d="M48 70 L43 82 L50 86 L57 81 L52 70Z" fill="#171a1a" stroke="#070808" stroke-width="2"/>
+<path d="M20 84 Q50 73 80 84 L76 111 Q50 130 24 111Z" fill="#020303" stroke="#090909" stroke-width="5"/>
+<path d="M27 88 L35 104 L43 88 L50 105 L58 88 L66 103 L74 88" stroke="#d8d0b9" stroke-width="4" fill="none"/>
+<path d="M27 88 L35 104 L43 88 L50 105 L58 88 L66 103 L74 88" stroke="#5a5b55" stroke-width="1" fill="none"/>
+<path d="M14 91 L21 96 M80 92 L87 86 M29 117 L25 126 M72 118 L77 127" stroke="#a6a9a5" stroke-width="1.5" opacity=".6"/>
+<circle cx="17" cy="105" r="2" fill="#aeb2ad"/><circle cx="83" cy="104" r="2" fill="#aeb2ad"/><circle cx="29" cy="133" r="2" fill="#aeb2ad"/><circle cx="71" cy="133" r="2" fill="#aeb2ad"/>
+<path d="M8 77 L15 72 M84 76 L92 80" stroke="#080909" stroke-width="4"/>
+</svg>`;}
+function drawWitnessSvg(){return `<svg viewBox="0 0 120 180" width="100%" height="100%" aria-label="The Witness, a hidden animatronic">
+<defs><linearGradient id="witnessMask" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c6cbca"/><stop offset=".42" stop-color="#6d7779"/><stop offset="1" stop-color="#161b1d"/></linearGradient><radialGradient id="witnessEye"><stop stop-color="#fff"/><stop offset=".35" stop-color="#d8f4ff"/><stop offset="1" stop-color="#7cb6cc"/></radialGradient></defs>
+<path d="M24 57 L16 5 L43 30 L77 30 L104 5 L96 57 L108 105 L92 159 L75 175 L60 156 L45 175 L28 158 L12 105Z" fill="#101416" stroke="#030404" stroke-width="7"/>
+<path d="M27 49 Q60 27 93 49 L88 106 Q60 130 32 106Z" fill="url(#witnessMask)" stroke="#0a0d0e" stroke-width="5"/>
+<path d="M30 62 L49 54 L48 79 L32 83Z M71 54 L90 62 L88 83 L72 79Z" fill="#050708"/>
+<ellipse cx="40" cy="70" rx="6" ry="8" fill="url(#witnessEye)"/><ellipse cx="80" cy="70" rx="6" ry="8" fill="url(#witnessEye)"/>
+<path d="M58 72 L52 88 L60 94 L68 88 L62 72Z" fill="#14191b"/>
+<path d="M38 101 Q60 112 82 101 L77 119 L60 126 L43 119Z" fill="#020303" stroke="#b6c2c3" stroke-width="2"/>
+<path d="M44 105 L50 116 L56 106 L62 117 L68 106 L75 114" stroke="#d9e0df" stroke-width="2.5" fill="none"/>
+<path d="M38 45 L44 40 M76 40 L83 46 M31 92 L24 100 M90 94 L97 101" stroke="#e1e7e6" stroke-opacity=".5" stroke-width="2"/>
+<path d="M45 127 L42 153 L52 164 M75 127 L78 153 L68 164" stroke="#3e484a" stroke-width="9" fill="none"/>
+</svg>`;}
+function initAnim(){state.anim=anims.map((a,i)=>({...a,aggr:state.customMode?(state.customLevels[i]/10):a.aggr,pos:0,room:a.route[0],moveAt:state.customMode?(state.customLevels[i]===0?99999:Math.max(4,22-state.customLevels[i]*.7)):14+i*9,active:false,attackAt:0}));}
+function startNight(n=state.night,custom=false){state.customMode=custom;state.night=Math.max(1,Math.min(6,n));state.power=100;state.elapsed=0;state.running=true;state.paused=false;state.leftDoor=state.rightDoor=state.leftLight=state.rightLight=false;state.secret=false;state.rechargeAt=0;state.scareLock=false;state.witnessUntil=0;state.witnessSeen=false;initAnim();updateOffice();$('nightOverlay').classList.remove('active');$('endOverlay').classList.remove('active');$('jumpscare').style.display='none';$('secretPanel').classList.remove('show');setOffice();$('nightLabel').textContent=state.customMode?'CUSTOM NIGHT':'NIGHT '+state.night;sound(120,.4,'sawtooth',.03);state.last=performance.now();}
+function beginNight(n){state.night=n;state.customMode=false;state.running=false;$('overlayTitle').textContent='NIGHT '+n;$('overlayMessage').textContent=n===6?'The final shift begins. Make it to 6 AM.':'12:00 AM';$('overlayStart').textContent='START NIGHT';$('nightOverlay').classList.add('active');showScreen('office');}
+function endNight(won){state.running=false;state.monitor=false;$('monitor').classList.remove('active');$('endOverlay').classList.add('active');$('endTitle').textContent=won?'6 AM':'GAME OVER';
+ if(won&&state.customMode){$('endMessage').textContent='Custom Night survived. You proved you can handle the chaos.';$('nextNight').textContent='MAIN MENU';}
+ else if(won){$('endMessage').textContent=state.night===6?'Night 6 complete. CUSTOM NIGHT UNLOCKED. The animatronics are now yours to control.':`Night ${state.night} complete. The restaurant is quiet... for now.`;$('nextNight').textContent=state.night<6?'NEXT NIGHT':'CUSTOM NIGHT';}
+ else {$('endMessage').textContent='Something got inside. The shift is over.';$('nextNight').textContent='RETRY NIGHT';}
+ if(won&&!state.customMode){state.unlocked=Math.max(state.unlocked,Math.min(6,state.night+1));localStorage.setItem('ah_unlocked',state.unlocked);
+ if(state.night===6){state.customUnlocked=true;localStorage.setItem('ah_customUnlocked','1');}}
+ updateCustomUnlockUI();$('continueNum').textContent=state.unlocked;}
+function gameOver(){if(state.scareLock||!state.running)return;state.scareLock=true;state.running=false;state.monitor=false;$('monitor').classList.remove('active');$('jumpscare').style.display='flex';sound(70,.5,'sawtooth',.15);setTimeout(()=>{if($('jumpscare').style.display!=='none'){ $('jumpscare').style.display='none';endNight(false);state.scareLock=false;}},1050);}
+function winNight(){if(!state.running)return;state.running=false;sound(660,.6,'sine',.08);setTimeout(()=>sound(880,.7,'sine',.08),250);endNight(true);}
+function updateOffice(){
+ $('leftDoor').classList.toggle('closed',state.leftDoor);$('rightDoor').classList.toggle('closed',state.rightDoor);
+ $('leftLight').classList.toggle('on',state.leftLight);$('rightLight').classList.toggle('on',state.rightLight);
+ $('leftDoorBtn').classList.toggle('active',state.leftDoor);$('rightDoorBtn').classList.toggle('active',state.rightDoor);
+ $('leftLightBtn').classList.toggle('active',state.leftLight);$('rightLightBtn').classList.toggle('active',state.rightLight);
+ $('powerText').textContent=Math.ceil(state.power)+'%';
+ let usage=1+(state.leftDoor?1:0)+(state.rightDoor?1:0)+(state.leftLight?1:0)+(state.rightLight?1:0)+(state.monitor?1:0);
+ [...$('usage').children].forEach((e,i)=>e.classList.toggle('on',i<Math.min(5,usage)));
+ let l=state.anim.find(a=>a.side==='left'&&a.pos>=a.route.length-1),r=state.anim.find(a=>a.side==='right'&&a.pos>=a.route.length-1);
+ $('leftThreat').innerHTML=l?drawAnimSvg(l.color):'';$('leftThreat').classList.toggle('show',!!(state.leftLight&&l));
+ $('rightThreat').innerHTML=r?drawAnimSvg(r.color,true):'';$('rightThreat').classList.toggle('show',!!(state.rightLight&&r));
+ $('secretPanel').classList.toggle('show',state.secret);
+ const rem=Math.max(0,Math.ceil(state.rechargeAt-performance.now()/1000));
+ $('cooldown').textContent=state.rechargeAt>performance.now()/1000?`Recharge ready in ${Math.ceil(state.rechargeAt-performance.now()/1000)}s`:'Recharge ready';
+ $('rechargeBtn').disabled=state.rechargeAt>performance.now()/1000||state.power>=100;
+}
+function renderCam(){
+ const c=cams[state.cam];$('camLabel').textContent=`CAM ${c[0]} — ${c[1]}`;
+ $('camRoom').style.background=`repeating-linear-gradient(0deg,transparent 0 44px,#ffffff08 45px 47px),linear-gradient(90deg,${['#272320','#282a29','#15100e','#202326','#111314','#282727','#272b2d','#111415','#171719','#242625','#262323','#151b1d'][state.cam]},#08090a)`;
+ const a=state.anim.find(a=>a.room===state.cam);
+ const witness=state.cam===11&&state.witnessUntil>state.elapsed;
+ $('camAnim').innerHTML=witness?drawWitnessSvg():(a?drawAnimSvg(a.color,a.name==='GRIN'):'');
+ $('camAnim').classList.toggle('show',!!a||witness);
+ if(witness){$('camLabel').textContent='CAM 8 — VENT HUB // UNKNOWN FIGURE';}
+
+ [...$('camMap').querySelectorAll('button')].forEach((b,i)=>{b.classList.toggle('selected',i===state.cam);b.querySelector('.dot').textContent=state.anim.some(a=>a.room===i)?' ●':''});
+}
+function toggleMonitor(){if(!state.running)return;state.monitor=!state.monitor;if(state.monitor){state.leftLight=state.rightLight=false;$('monitor').classList.add('active');showScreen('monitor');renderCam();$('monitorToggle').textContent='';sound(420,.08,'square',.04)}else{setOffice();sound(250,.08,'square',.04)}updateOffice();}
+function moveAI(dt){
+ const hour=state.elapsed/state.nightDuration;
+ state.anim.forEach((a,i)=>{
+   if(state.customMode&&state.customLevels[i]===0)return;
+   const difficulty=state.customMode?(state.customLevels[i]/10):(.65+state.night*.23+hour*.9)*a.aggr;
+   if(state.elapsed>=a.moveAt && a.pos<a.route.length-1){
+     // Each animatronic advances on its own clock; later nights increase pressure.
+     if(Math.random()<(state.customMode?Math.min(.98,.18+difficulty*.038):Math.min(.96,.48+difficulty*.1))){
+       a.pos++;a.room=a.route[a.pos];sound(95+i*25,.08,'triangle',.012);
+       a.moveAt=state.elapsed+(state.customMode?Math.max(2,22-state.customLevels[i]*.75-Math.random()*3):Math.max(5,18-i*1.4-state.night*1.2-Math.random()*5));
+     }else a.moveAt=state.elapsed+4;
+   }
+   if(a.pos>=a.route.length-1){
+     const doorClosed=a.side==='left'?state.leftDoor:state.rightDoor;
+     if(doorClosed){if(!a.attackAt)a.attackAt=state.elapsed+5+Math.random()*4;if(state.elapsed>a.attackAt){a.pos=Math.max(0,a.pos-2);a.room=a.route[a.pos];a.attackAt=0;a.moveAt=state.elapsed+10;}}
+     else {if(!a.attackAt)a.attackAt=state.elapsed+Math.max(2,6-state.night*.5);if(state.elapsed>=a.attackAt)gameOver();}
+   }else a.attackAt=0;
+ });
+}
+function frame(now){
+ const dt=Math.min(.1,(now-state.last)/1000||0);state.last=now;
+ if(state.running&&!state.paused){
+   state.elapsed+=dt;
+   if(state.monitor&&state.cam===11&&!state.witnessSeen&&Math.random()<0.0001){state.witnessUntil=state.elapsed+3.5;state.witnessSeen=true;sound(55,.28,'sine',.025);}
+   if(state.witnessUntil&&state.elapsed>state.witnessUntil){state.witnessUntil=0;}
+   const usage=0.045+(state.leftDoor?.16:0)+(state.rightDoor?.16:0)+(state.leftLight?.09:0)+(state.rightLight?.09:0)+(state.monitor?.075:0);
+   state.power=Math.max(0,state.power-usage*dt*(1+(state.night-1)*.09));
+   if(state.power<=0){state.leftDoor=state.rightDoor=state.leftLight=state.rightLight=false;state.monitor=false;$('monitor').classList.remove('active');setOffice();if(state.elapsed>state.nightDuration*.35 && Math.random()<.001)gameOver();}
+   moveAI(dt);
+   const progress=Math.min(1,state.elapsed/state.nightDuration), hour=progress*6;
+   $('hour').textContent=hour<1?'12 AM':`${Math.min(6,Math.floor(hour))} AM`;
+   if(state.elapsed>=state.nightDuration)winNight();
+   if(state.monitor)renderCam();
+   updateOffice();
+ }
+ requestAnimationFrame(frame);
+}
+function openVent(){if(!state.running)return;state.ventCode='';$('codeDisplay').textContent='----';$('codeMessage').textContent='A faint scratching echoes behind the metal.';showScreen('vent');$('vent').classList.add('active');$('monitor').classList.remove('active');state.monitor=false;sound(90,.2,'triangle',.05);}
+function submitCode(){if(state.ventCode==='2234'){state.secret=true;$('codeMessage').textContent='ACCESS GRANTED. THE NIGHTMARE IS YOURS.';$('codeMessage').style.color='#9dfc82';sound(880,.25,'sine',.08);setTimeout(()=>{setOffice();updateOffice()},700)}else{$('codeMessage').textContent='ACCESS DENIED.';$('codeMessage').style.color='#ff6666';sound(100,.2,'sawtooth',.05);state.ventCode='';$('codeDisplay').textContent='----';}}
+function addDigit(d){if(d==='C'){state.ventCode='';$('codeDisplay').textContent='----';return}if(d==='ENTER'){submitCode();return}if(state.ventCode.length<4){state.ventCode+=d;$('codeDisplay').textContent=state.ventCode.padEnd(4,'•');sound(300,.04,'square',.02);if(state.ventCode.length===4)setTimeout(submitCode,250)}}
+function summon(){if(!state.secret||!state.running)return;state.running=false;$('jumpscare').style.display='flex';$('scareText').textContent='YOU ASKED FOR IT';sound(60,.5,'sawtooth',.14);setTimeout(()=>{$('jumpscare').style.display='none';state.running=true;state.last=performance.now();setOffice()},850);}
+function skipNight(){if(!state.secret||!state.running)return;state.elapsed=state.nightDuration;winNight();}
+function recharge(){if(!state.secret||!state.running||state.rechargeAt>performance.now()/1000||state.power>=100)return;state.power=Math.min(100,state.power+20);state.rechargeAt=performance.now()/1000+15;sound(600,.12,'sine',.06);updateOffice();}
+function updateCustomUnlockUI(){
+ const unlocked=!!state.customUnlocked;
+ $('customNightBtn').disabled=!unlocked;
+ $('customNightBtn').textContent=unlocked?'CUSTOM NIGHT':'CUSTOM NIGHT 🔒';
+ $('customLock').textContent=unlocked?'UNLOCKED — MAKE YOUR OWN NIGHTMARE.':'CUSTOM NIGHT LOCKED — SURVIVE NIGHT 6 FIRST.';
+ $('customLock').style.color=unlocked?'#9dfc82':'#e8b9a0';
+ $('startCustomBtn').disabled=!unlocked;
+}
+function init(){
+ const map=$('camMap');cams.forEach((c,i)=>{let b=document.createElement('button');b.innerHTML=`CAM ${c[0]}<span class="dot"></span>`;b.onclick=()=>{state.cam=i;renderCam();sound(180,.04,'square',.025)};map.appendChild(b)});
+ const kg=$('keyGrid');['1','2','3','4','5','6','7','8','9','C','0','ENTER'].forEach(k=>{let b=document.createElement('button');b.textContent=k;b.onclick=()=>addDigit(k);kg.appendChild(b)});
+ $('newGame').onclick=()=>{state.night=1;beginNight(1);sound(150,.2,'sawtooth',.04)};
+ $('continueGame').onclick=()=>beginNight(Math.min(state.unlocked,6));
+ $('nightSelect').onclick=()=>{let n=prompt(`Choose a night (1-${state.unlocked})`);if(n&&Number(n)>=1&&Number(n)<=state.unlocked)beginNight(Number(n));};
+ $('settingsBtn').onclick=()=>showScreen('settings');$('settingsBack').onclick=()=>showScreen('menu');$('volume').oninput=setVolume;
+ $('customNightBtn').onclick=()=>{showScreen('customNight');updateCustomUnlockUI();};
+ $('customBackBtn').onclick=()=>showScreen('menu');
+ $('startCustomBtn').onclick=()=>{if(!state.customUnlocked)return;state.customLevels=['rusty','vex','peaches','grin'].map(id=>Number($(id+'Level').value));state.night=6;state.customMode=true;state.running=false;$('nightOverlay').classList.remove('active');startNight(6,true);};
+ ['rusty','vex','peaches','grin'].forEach(id=>{$(id+'Level').oninput=()=>$(id+'Val').textContent=$(id+'Level').value;});
+
+ $('brightness').oninput=()=>{$('game').style.filter=`brightness(${$('brightness').value}%)`};
+ $('overlayStart').onclick=()=>startNight(state.night);
+ $('overlayMenu').onclick=()=>{$('nightOverlay').classList.remove('active');showScreen('menu')};
+ $('nextNight').onclick=()=>{ $('endOverlay').classList.remove('active');if(!state.customMode&&state.night<6){state.night++;beginNight(state.night)}else if(!state.customMode&&state.night===6&&state.customUnlocked){showScreen('customNight');updateCustomUnlockUI()}else{state.customMode=false;showScreen('menu')}};
+ $('endMenu').onclick=()=>{$('endOverlay').classList.remove('active');$('jumpscare').style.display='none';showScreen('menu')};
+ $('leftDoorBtn').onclick=()=>{if(!state.running)return;state.leftDoor=!state.leftDoor;state.leftLight=false;sound(state.leftDoor?90:150,.09,'square',.05);updateOffice()};
+ $('rightDoorBtn').onclick=()=>{if(!state.running)return;state.rightDoor=!state.rightDoor;state.rightLight=false;sound(state.rightDoor?90:150,.09,'square',.05);updateOffice()};
+ $('leftLightBtn').onclick=()=>{if(!state.running||state.monitor||state.power<=0)return;state.leftLight=!state.leftLight;state.rightLight=false;sound(350,.04,'square',.025);updateOffice()};
+ $('rightLightBtn').onclick=()=>{if(!state.running||state.monitor||state.power<=0)return;state.rightLight=!state.rightLight;state.leftLight=false;sound(350,.04,'square',.025);updateOffice()};
+ $('monitorToggle').onclick=toggleMonitor;$('lowerMonitor').onclick=toggleMonitor;
+ $('ventReturn').onclick=()=>{setOffice();updateOffice()};
+ $('summonBtn').onclick=summon;$('skipBtn').onclick=skipNight;$('rechargeBtn').onclick=recharge;
+ // Hidden vent hotspot outside right doorway; clicking the rightmost hallway while the light is on reveals/accesses it.
+ $('rightHall').style.cursor='pointer';$('rightHall').title='A suspicious maintenance vent';
+ $('rightHall').addEventListener('click',()=>openVent());
+ $('rightHall').addEventListener('dblclick',openVent);
+ document.addEventListener('keydown',e=>{if($('vent').classList.contains('active')){if(/^[0-9]$/.test(e.key))addDigit(e.key);else if(e.key==='Enter')addDigit('ENTER');else if(e.key==='Backspace')addDigit('C');return}if(e.key.toLowerCase()==='c')toggleMonitor();if(e.key.toLowerCase()==='a')$('leftDoorBtn').click();if(e.key.toLowerCase()==='d')$('rightDoorBtn').click();if(e.key.toLowerCase()==='q')$('leftLightBtn').click();if(e.key.toLowerCase()==='e')$('rightLightBtn').click();if(e.key==='Escape'&&state.monitor)toggleMonitor()});
+ state.unlocked=Math.max(1,Math.min(6,Number(localStorage.getItem('ah_unlocked')||1)));
+ state.customUnlocked=localStorage.getItem('ah_customUnlocked')==='1';
+ $('continueNum').textContent=state.unlocked;updateCustomUnlockUI();
+ initAnim();updateOffice();requestAnimationFrame(frame);
+}
+init();
+})();
+</script>
+</body></html>
